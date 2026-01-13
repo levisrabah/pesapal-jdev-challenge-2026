@@ -37,7 +37,7 @@ def print_welcome():
     
     Example:
       CREATE TABLE users (id INT PRIMARY KEY, name TEXT, email TEXT UNIQUE)
-      INSERT INTO users VALUES (1, 'John Doe', 'john@example.com')
+      INSERT INTO users VALUES (1, 'Ndugu Eligio', 'nduguu@example.com')
       SELECT * FROM users
     
     """
@@ -55,7 +55,7 @@ def print_help():
     
     2. INSERT
        Syntax: INSERT INTO <table> [(columns)] VALUES (value1, value2, ...)
-       Example: INSERT INTO users VALUES (1, 'John', 'john@example.com')
+       Example: INSERT INTO users VALUES (1, 'Eligio', 'eligio@example.com')
     
     3. SELECT
        Syntax: SELECT [*|col1, col2] FROM <table> [WHERE col = value]
@@ -63,7 +63,7 @@ def print_help():
     
     4. UPDATE
        Syntax: UPDATE <table> SET col1 = val1, col2 = val2 [WHERE condition]
-       Example: UPDATE users SET name = 'Jane' WHERE id = 1
+       Example: UPDATE users SET name = 'Waweru' WHERE id = 1
     
     5. DELETE (Soft Delete)
        Syntax: DELETE FROM <table> [WHERE condition]
@@ -75,7 +75,7 @@ def print_help():
        Example: SELECT * FROM transactions INNER JOIN users ON transactions.user_id = users.id
     
     💡 TIPS:
-      - Use single quotes for TEXT values: 'John Doe'
+      - Use single quotes for TEXT values: 'Venny Levi'
       - Numbers can be INT or FLOAT
       - Primary keys must be unique
       - Soft deletes preserve data (is_deleted flag)
@@ -151,7 +151,7 @@ def main():
             
             # Handle special commands
             if user_input.upper() in ['EXIT', 'QUIT']:
-                print("\n👋 Thank you for using Pesapal RDBMS! Goodbye!\n")
+                print("\n👋 Thank you for using Pesapal RDBMS! Kwaheri!\n")
                 break
             
             if user_input.upper() == 'HELP':
@@ -239,7 +239,7 @@ def main():
         except KeyboardInterrupt:
             print("\n\n👋 Interrupted. Type 'EXIT' to quit.\n")
         except EOFError:
-            print("\n\n👋 Thank you for using Pesapal RDBMS! Goodbye!\n")
+            print("\n\n👋 Thank you for using Pesapal RDBMS! Kwaheri!\n")
             break
 
 
