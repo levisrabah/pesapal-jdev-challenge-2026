@@ -219,6 +219,28 @@ def create_transaction(transaction: Dict[str, Any]):
         return {"message": "Transaction created", "id": next_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/api/users")
+def create_user(user_data: Dict[str, Any]):
+    """Specific API to create a user with auto-incrementing ID."""
+    try:
+        # Load all users to calculate the next ID
+        all_users = storage.get_all_rows('users', include_deleted=True)
+        next_id = max([u.get('id', 0) for u in all_users], default=0) + 1
+        
+        row_data = {
+            "id": next_id,
+            "name": str(user_data.get("name")),
+            "email": str(user_data.get("email")),
+            "created_at": datetime.now().isoformat(),
+            "is_deleted": False
+        }
+        
+        engine.insert('users', row_data)
+        return {"message": "User created successfully", "id": next_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"User creation failed: {str(e)}")
+        
 @app.get("/api/transactions_with_users")
 def get_transactions_with_users():
     """
@@ -254,7 +276,6 @@ def get_transactions_with_users():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching transactions: {str(e)}")
-
 
 @app.get("/health")
 def health_check():
