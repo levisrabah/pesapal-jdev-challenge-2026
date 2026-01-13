@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Helper script to add description and timestamp fields to transactions table.
 Run this once to update the transactions table schema for the dashboard.

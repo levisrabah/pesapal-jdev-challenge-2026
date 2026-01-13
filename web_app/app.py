@@ -197,57 +197,28 @@ def join_tables(request: JoinRequest):
         raise HTTPException(status_code=500, detail=str(e))
 @app.post("/api/transaction")
 def create_transaction(transaction: Dict[str, Any]):
-    """
-    Create a new transaction.
-    Receives: {user_id: int, amount: float, description: str}
-    """
     try:
-        # Check if transactions table exists
-        if not storage.table_exists('transactions'):
-            raise HTTPException(status_code=404, detail="Transactions table does not exist. Please create it first.")
+        # Load the latest data directly from storage to get the REAL next ID
+        all_rows = storage.get_all_rows('transactions', include_deleted=True)
+        next_id = max([row.get('id', 0) for row in all_rows], default=0) + 1
         
-        # Get the current schema to see what fields exist
-        table_data = storage.load_table('transactions')
-        schema = table_data["schema"]
+        # Force correct types
+        user_id = int(transaction.get("user_id"))
+        amount = float(transaction.get("amount"))
         
-        # Prepare the row data with only fields that exist in schema
-        row_data = {}
-        
-        # Add required fields that should exist
-        if "id" in schema:
-            existing_rows = engine.select('transactions')
-            next_id = max([row.get('id', 0) for row in existing_rows], default=0) + 1
-            row_data["id"] = next_id
-        
-        if "user_id" in schema:
-            row_data["user_id"] = transaction.get("user_id")
-        
-        if "amount" in schema:
-            row_data["amount"] = transaction.get("amount")
-        
-        # Add optional fields if they exist in schema
-        if "description" in schema:
-            row_data["description"] = transaction.get("description", "")
-        
-        if "timestamp" in schema:
-            row_data["timestamp"] = datetime.now().isoformat()
-        
-        # Insert the transaction (created_at is auto-added by engine)
-        engine.insert('transactions', row_data)
-        
-        return {
-            "message": "Transaction created successfully",
-            "transaction_id": row_data.get("id"),
-            "data": row_data
+        row_data = {
+            "id": next_id,
+            "user_id": user_id,
+            "amount": amount,
+            "description": str(transaction.get("description", "")),
+            "created_at": datetime.now().isoformat(),
+            "is_deleted": False
         }
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        
+        engine.insert('transactions', row_data)
+        return {"message": "Transaction created", "id": next_id}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error creating transaction: {str(e)}")
-
-
+        raise HTTPException(status_code=500, detail=str(e))
 @app.get("/api/transactions_with_users")
 def get_transactions_with_users():
     """

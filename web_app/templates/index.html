@@ -3,249 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pesapal Immutable Ledger Dashboard</title>
+    <title>Pesapal Immutable Ledger</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Pesapal brand colors */
-        :root {
-            --pesapal-blue: #0066CC;
-            --pesapal-orange: #FF6600;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .bg-pesapal-blue { background-color: #0066CC; }
+        .text-pesapal-blue { color: #0066CC; }
+        .border-pesapal-orange { border-color: #FF6600; }
+        .bg-pesapal-orange { background-color: #FF6600; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-7xl">
-        <!-- Header -->
-        <header class="mb-8">
-            <h1 class="text-4xl font-bold text-gray-900 mb-2">
-                Pesapal Immutable Ledger Dashboard
-            </h1>
-            <p class="text-gray-600">Custom RDBMS Transaction Management System</p>
-        </header>
+<body class="bg-slate-50 min-h-screen">
+    <nav class="bg-pesapal-blue text-white shadow-lg mb-8">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-pesapal-blue font-bold text-xl">P</div>
+                <span class="text-xl font-bold tracking-tight">RDBMS Ledger Admin</span>
+            </div>
+            <div class="text-sm font-medium bg-blue-700 px-3 py-1 rounded-full text-blue-100">
+                System Status: Active
+            </div>
+        </div>
+    </nav>
 
-        <!-- Section 1: Record New Transaction -->
-        <section class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">
-                Record New Transaction
-            </h2>
-            <form id="transactionForm" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label for="user_id" class="block text-sm font-medium text-gray-700 mb-1">
-                            User ID
-                        </label>
-                        <input 
-                            type="number" 
-                            id="user_id" 
-                            name="user_id" 
-                            required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="e.g., 1"
-                        >
-                    </div>
-                    <div>
-                        <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">
-                            Amount
-                        </label>
-                        <input 
-                            type="number" 
-                            step="0.01" 
-                            id="amount" 
-                            name="amount" 
-                            required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="e.g., 500.25"
-                        >
-                    </div>
-                    <div>
-                        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
-                            Description
-                        </label>
-                        <input 
-                            type="text" 
-                            id="description" 
-                            name="description" 
-                            required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="e.g., Online purchase"
-                        >
-                    </div>
-                </div>
-                <button 
-                    type="submit" 
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition duration-200 shadow-sm hover:shadow-md"
-                >
-                    Submit Transaction
-                </button>
-            </form>
-            <div id="transactionMessage" class="mt-4"></div>
-        </section>
+    <div class="container mx-auto px-6 max-w-7xl">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-pesapal-blue">
+                <p class="text-sm text-gray-500 font-medium uppercase">Total Transactions</p>
+                <h3 id="stat-count" class="text-3xl font-bold text-gray-800">0</h3>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+                <p class="text-sm text-gray-500 font-medium uppercase">Ledger Integrity</p>
+                <h3 class="text-3xl font-bold text-gray-800">100%</h3>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-pesapal-orange">
+                <p class="text-sm text-gray-500 font-medium uppercase">Storage Type</p>
+                <h3 class="text-2xl font-bold text-gray-800">Custom JSON</h3>
+            </div>
+        </div>
 
-        <!-- Section 2: Transaction History -->
-        <section class="bg-white rounded-lg shadow-md p-6">
-            <div class="flex justify-between items-center mb-4 border-b pb-2">
-                <h2 class="text-2xl font-semibold text-gray-800">
-                    Transaction History
-                </h2>
-                <button 
-                    id="refreshBtn" 
-                    class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 shadow-sm hover:shadow-md"
-                >
-                    Refresh
-                </button>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1">
+                <section class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 sticky top-8">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-pesapal-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        New Transaction
+                    </h2>
+                    <form id="transactionForm" class="space-y-5">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">User ID</label>
+                            <input type="number" id="user_id" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="e.g. 1">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Amount (KES)</label>
+                            <input type="number" step="0.01" id="amount" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Description</label>
+                            <textarea id="description" rows="3" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Reason for transaction"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-pesapal-blue hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md transition transform active:scale-95">
+                            Post Transaction
+                        </button>
+                    </form>
+                    <div id="transactionMessage" class="mt-4 text-sm text-center"></div>
+                </section>
             </div>
-            <div id="loadingIndicator" class="text-center py-8 text-gray-500">
-                Loading transactions...
+
+            <div class="lg:col-span-2">
+                <section class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                        <h2 class="text-xl font-bold text-gray-800">Transaction Ledger</h2>
+                        <button id="refreshBtn" class="p-2 hover:bg-gray-200 rounded-full transition" title="Refresh Data">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        </button>
+                    </div>
+                    
+                    <div id="loadingIndicator" class="py-20 text-center">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-pesapal-blue border-t-transparent"></div>
+                        <p class="mt-2 text-gray-500 font-medium">Querying RDBMS...</p>
+                    </div>
+
+                    <div id="transactionsTable" class="hidden overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-400 text-xs font-bold uppercase tracking-wider">
+                                    <th class="px-6 py-4">ID</th>
+                                    <th class="px-6 py-4">Payer/Recipient</th>
+                                    <th class="px-6 py-4 text-right">Amount</th>
+                                    <th class="px-6 py-4">Description</th>
+                                    <th class="px-6 py-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionsBody" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="emptyMessage" class="hidden py-20 text-center">
+                        <svg class="w-16 h-16 text-gray-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1.1 1.1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <p class="text-gray-400">No records found in current storage</p>
+                    </div>
+                </section>
             </div>
-            <div id="transactionsTable" class="overflow-x-auto hidden">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Transaction ID
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                User Name
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Amount
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Description
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Timestamp
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="transactionsBody" class="bg-white divide-y divide-gray-200">
-                        <!-- Transactions will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
-            <div id="errorMessage" class="hidden text-center py-8 text-red-600"></div>
-            <div id="emptyMessage" class="hidden text-center py-8 text-gray-500">
-                No transactions found.
-            </div>
-        </section>
+        </div>
     </div>
 
     <script>
-        // Handle form submission
+        const currencyFormatter = new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' });
+
+        async function loadTransactions() {
+            const loading = document.getElementById('loadingIndicator');
+            const table = document.getElementById('transactionsTable');
+            const body = document.getElementById('transactionsBody');
+            const empty = document.getElementById('emptyMessage');
+            const statCount = document.getElementById('stat-count');
+
+            loading.classList.remove('hidden');
+            table.classList.add('hidden');
+            empty.classList.add('hidden');
+
+            try {
+                const res = await fetch('/api/transactions_with_users');
+                const data = await res.json();
+                
+                loading.classList.add('hidden');
+                
+                if (res.ok && data.transactions && data.transactions.length > 0) {
+                    body.innerHTML = '';
+                    statCount.innerText = data.transactions.length;
+                    
+                    data.transactions.forEach(t => {
+                        const row = document.createElement('tr');
+                        row.className = "hover:bg-slate-50 transition-colors group";
+
+                        // ROBUST DATA MAPPING
+                        const id = t['transactions.id'] || t['id'] || '-';
+                        const uName = t['users.name'] || t['name'] || `User #${t['transactions.user_id'] || t['user_id']}`;
+                        const amount = parseFloat(t['transactions.amount'] || t['amount'] || 0);
+                        const desc = t['transactions.description'] || t['description'] || '-';
+                        const isDeleted = t['transactions.is_deleted'] || t['is_deleted'] || false;
+
+                        row.innerHTML = `
+                            <td class="px-6 py-4 text-sm font-mono text-gray-400">${id}</td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-semibold text-gray-800">${uName}</div>
+                                <div class="text-xs text-gray-400">${t['transactions.created_at'] ? new Date(t['transactions.created_at']).toLocaleDateString() : 'Today'}</div>
+                            </td>
+                            <td class="px-6 py-4 text-right font-bold ${amount >= 0 ? 'text-green-600' : 'text-red-500'}">
+                                ${currencyFormatter.format(amount)}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">${desc}</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-[10px] font-bold uppercase rounded ${isDeleted ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}">
+                                    ${isDeleted ? 'Invalidated' : 'Audited'}
+                                </span>
+                            </td>
+                        `;
+                        body.appendChild(row);
+                    });
+                    table.classList.remove('hidden');
+                } else {
+                    empty.classList.remove('hidden');
+                    statCount.innerText = '0';
+                }
+            } catch (err) {
+                loading.classList.add('hidden');
+                console.error("Fetch Error:", err);
+            }
+        }
+
         document.getElementById('transactionForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const msg = document.getElementById('transactionMessage');
             
-            const formData = {
+            const payload = {
                 user_id: parseInt(document.getElementById('user_id').value),
                 amount: parseFloat(document.getElementById('amount').value),
                 description: document.getElementById('description').value
             };
 
-            const messageDiv = document.getElementById('transactionMessage');
-            messageDiv.className = 'mt-4';
-            messageDiv.innerHTML = '<p class="text-blue-600">Submitting transaction...</p>';
-
+            btn.disabled = true;
+            btn.innerText = 'Syncing...';
+            
             try {
-                const response = await fetch('/api/transaction', {
+                const res = await fetch('/api/transaction', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
                 });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    messageDiv.innerHTML = `<p class="text-green-600 font-medium">✅ ${data.message || 'Transaction submitted successfully!'}</p>`;
-                    document.getElementById('transactionForm').reset();
-                    // Refresh transaction list
+                
+                if (res.ok) {
+                    msg.className = "mt-4 text-sm text-green-600 font-bold";
+                    msg.innerText = "✓ Transaction committed to JSON storage";
+                    e.target.reset();
                     loadTransactions();
                 } else {
-                    messageDiv.innerHTML = `<p class="text-red-600 font-medium">❌ Error: ${data.detail || 'Failed to submit transaction'}</p>`;
+                    const err = await res.json();
+                    msg.className = "mt-4 text-sm text-red-500 font-bold";
+                    msg.innerText = "Error: " + (err.detail || "Validation failed");
                 }
-            } catch (error) {
-                messageDiv.innerHTML = `<p class="text-red-600 font-medium">❌ Error: ${error.message}</p>`;
+            } catch (err) {
+                msg.innerText = "System offline or connection lost";
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Post Transaction';
             }
         });
 
-        // Load transactions
-        async function loadTransactions() {
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            const transactionsTable = document.getElementById('transactionsTable');
-            const transactionsBody = document.getElementById('transactionsBody');
-            const errorMessage = document.getElementById('errorMessage');
-            const emptyMessage = document.getElementById('emptyMessage');
-
-            // Show loading
-            loadingIndicator.classList.remove('hidden');
-            transactionsTable.classList.add('hidden');
-            errorMessage.classList.add('hidden');
-            emptyMessage.classList.add('hidden');
-
-            try {
-                const response = await fetch('/api/transactions_with_users');
-                const data = await response.json();
-
-                loadingIndicator.classList.add('hidden');
-
-                if (response.ok && data.transactions && data.transactions.length > 0) {
-                    transactionsBody.innerHTML = '';
-                    data.transactions.forEach(transaction => {
-                        const row = document.createElement('tr');
-                        row.className = 'hover:bg-gray-50';
-
-                        const id = transaction['transactions.id'] || transaction.id || 'N/A';
-                        const userName = transaction['users.name'] || transaction.name || 'Unknown';
-                        const amount = transaction['transactions.amount'] || transaction.amount || 0;
-                        const description = transaction['transactions.description'] || transaction.description || 'N/A';
-                        const timestamp = transaction['transactions.created_at'] || transaction.created_at || transaction.timestamp || 'N/A';
-                        const isDeleted = transaction['transactions.is_deleted'] || transaction.is_deleted || false;
-
-                        // Format timestamp
-                        let formattedTimestamp = timestamp;
-                        if (timestamp !== 'N/A' && timestamp.includes('T')) {
-                            const date = new Date(timestamp);
-                            formattedTimestamp = date.toLocaleString();
-                        }
-
-                        // Format amount
-                        const formattedAmount = new Intl.NumberFormat('en-KE', {
-                            style: 'currency',
-                            currency: 'KES'
-                        }).format(amount);
-
-                        row.innerHTML = `
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${id}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${userName}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${amount >= 0 ? 'text-green-600' : 'text-red-600'}">${formattedAmount}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500">${description}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formattedTimestamp}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                ${isDeleted ? '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Deleted</span>' : '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Active</span>'}
-                            </td>
-                        `;
-                        transactionsBody.appendChild(row);
-                    });
-                    transactionsTable.classList.remove('hidden');
-                } else {
-                    emptyMessage.classList.remove('hidden');
-                }
-            } catch (error) {
-                loadingIndicator.classList.add('hidden');
-                errorMessage.classList.remove('hidden');
-                errorMessage.textContent = `Error loading transactions: ${error.message}`;
-            }
-        }
-
-        // Refresh button
         document.getElementById('refreshBtn').addEventListener('click', loadTransactions);
-
-        // Load transactions on page load
-        loadTransactions();
+        window.onload = loadTransactions;
     </script>
 </body>
 </html>

@@ -17,14 +17,20 @@ class Storage:
     Each table is stored as a separate JSON file in the /data directory.
     """
     
-    def __init__(self, data_dir: str = "data"):
+    def __init__(self, data_dir: Optional[str] = None):
         """
-        Initialize the storage system.
-        
-        Args:
-            data_dir: Directory path where table JSON files are stored
+        Initialize the storage system with an absolute path to the project root.
         """
-        self.data_dir = data_dir
+        if data_dir is None:
+            # 1. Get the directory where storage.py lives (core/)
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            # 2. Go up one level to the project root
+            project_root = os.path.dirname(current_dir)
+            # 3. Target the 'data' folder at the root
+            self.data_dir = os.path.join(project_root, "data")
+        else:
+            self.data_dir = data_dir
+            
         self._ensure_data_directory()
     
     def _ensure_data_directory(self) -> None:
