@@ -271,14 +271,19 @@ class DatabaseEngine:
         
         if use_index:
             # Optimized join using index
+            # Note: Index stores indices into the full table rows array, so we need to load it
+            table2_data = self.storage.load_table(table2_name)
+            table2_all_rows = table2_data["rows"]  # Full rows array (for index lookup)
+            
             index = self.index_manager.get_index(table2_name, 'user_id')
             for row1 in rows1:
                 join_value = row1.get(join_col1)
                 if join_value is not None:
                     matching_indices = index.find(join_value)
                     for idx in matching_indices:
-                        if idx < len(rows2):
-                            row2 = rows2[idx]
+                        if idx < len(table2_all_rows):
+                            row2 = table2_all_rows[idx]
+                            # Skip soft-deleted rows
                             if not row2.get('is_deleted', False):
                                 joined_row = self._merge_rows(row1, row2, table1_name, table2_name)
                                 joined_rows.append(joined_row)

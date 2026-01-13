@@ -1,18 +1,15 @@
-#!/usr/bin/env python3
 """
 Main REPL - Interactive Command Line Interface
 
-This is the main entry point for the custom RDBMS.
+This is our main entry point for the custom RDBMS.
 Provides an interactive SQL-like REPL for database operations.
 """
-
 import sys
 import re
 from core.storage import Storage
 from core.indexing import IndexManager
 from core.parser import SQLParser
 from core.engine import DatabaseEngine
-
 
 def print_welcome():
     """Display ASCII art welcome message."""
@@ -22,7 +19,7 @@ def print_welcome():
     ║     🏦  PESAPAL CUSTOM RDBMS - IMMUTABLE TRANSACTION LEDGER  ║
     ║                                                              ║
     ║     Welcome to the Fintech Database System!                 ║
-    ║     Built from scratch with Python (No SQL libraries)       ║
+    ║     Built from scratch with Python without SQL libraries       ║
     ║                                                              ║
     ╚══════════════════════════════════════════════════════════════╝
     
@@ -85,11 +82,9 @@ def print_help():
     """
     print(help_text)
 
-
 def format_output(rows: list, limit: int = 100) -> str:
     """
-    Format query results as a table for display.
-    
+    Format query results as a table for display.    
     Args:
         rows: List of row dictionaries
         limit: Maximum number of rows to display
@@ -129,7 +124,6 @@ def format_output(rows: list, limit: int = 100) -> str:
     
     return "\n".join(output_lines) + "\n"
 
-
 def main():
     """Main REPL loop."""
     print_welcome()
@@ -154,8 +148,6 @@ def main():
             
             # Remove error message prefixes if accidentally pasted
             if "❌ Error:" in user_input or "Error:" in user_input:
-                # Try to extract the actual SQL command from error messages
-                # Pattern: "❌ Error: Unsupported SQL command: SQL> INSERT..."
                 match = re.search(r"(?:Unsupported SQL command:|SQL command:)\s*(.+)$", user_input, re.IGNORECASE)
                 if match:
                     user_input = match.group(1).strip()
@@ -192,7 +184,7 @@ def main():
                     print(f"✅ Table '{parsed['table_name']}' created successfully.\n")
                 
                 elif command == 'INSERT':
-                    # Map columns to values
+                    # Mapping columns to values
                     columns = parsed.get('columns')
                     values = parsed['values']
                     
@@ -260,7 +252,6 @@ def main():
         except EOFError:
             print("\n\n👋 Thank you for using Pesapal RDBMS! Kwaheri!\n")
             break
-
 
 if __name__ == "__main__":
     main()

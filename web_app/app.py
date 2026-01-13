@@ -33,30 +33,20 @@ class CreateTableRequest(BaseModel):
     schema: Dict[str, str]
     primary_key: Optional[str] = None
     unique_keys: Optional[List[str]] = None
-
-
 class InsertRequest(BaseModel):
     table_name: str
     row: Dict[str, Any]
-
-
 class SelectRequest(BaseModel):
     table_name: str
     columns: Optional[List[str]] = None
     where: Optional[Dict[str, Any]] = None
-
-
 class UpdateRequest(BaseModel):
     table_name: str
     updates: Dict[str, Any]
     where: Optional[Dict[str, Any]] = None
-
-
 class DeleteRequest(BaseModel):
     table_name: str
     where: Optional[Dict[str, Any]] = None
-
-
 class JoinRequest(BaseModel):
     table1: str
     table2: str
@@ -64,8 +54,6 @@ class JoinRequest(BaseModel):
     join_col2: str
     columns: Optional[List[str]] = None
     where: Optional[Dict[str, Any]] = None
-
-
 @app.get("/")
 def root():
     """Root endpoint with API information."""
@@ -82,7 +70,6 @@ def root():
             "POST /join": "Perform INNER JOIN"
         }
     }
-
 
 @app.get("/tables")
 def list_tables():
@@ -104,7 +91,6 @@ def list_tables():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.post("/tables")
 def create_table(request: CreateTableRequest):
     """Create a new table."""
@@ -123,8 +109,6 @@ def create_table(request: CreateTableRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.post("/insert")
 def insert_row(request: InsertRequest):
     """Insert a new row into a table."""
@@ -139,8 +123,6 @@ def insert_row(request: InsertRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.post("/select")
 def select_rows(request: SelectRequest):
     """Select rows from a table."""
@@ -159,8 +141,6 @@ def select_rows(request: SelectRequest):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.post("/update")
 def update_rows(request: UpdateRequest):
     """Update rows in a table."""
@@ -179,8 +159,6 @@ def update_rows(request: UpdateRequest):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.post("/delete")
 def delete_rows(request: DeleteRequest):
     """Soft delete rows from a table."""
@@ -198,8 +176,6 @@ def delete_rows(request: DeleteRequest):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.post("/join")
 def join_tables(request: JoinRequest):
     """Perform an INNER JOIN between two tables."""
@@ -222,13 +198,10 @@ def join_tables(request: JoinRequest):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.get("/health")
 def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": "Pesapal Custom RDBMS"}
-
 
 if __name__ == "__main__":
     import uvicorn

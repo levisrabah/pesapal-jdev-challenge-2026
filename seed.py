@@ -1,26 +1,22 @@
-#!/usr/bin/env python3
 """
 Quick Demo Script
 
 This script demonstrates the RDBMS capabilities with a fintech example.
-Run this to see the system in action without using the REPL.
+Run it to see the system in action without using the REPL.
 """
-
 from core.storage import Storage
 from core.indexing import IndexManager
 from core.parser import SQLParser
 from core.engine import DatabaseEngine
 
-
 def main():
-    print("🚀 Pesapal RDBMS Demo - Fintech Transaction Ledger\n")
-    
+    print("🚀 Pesapal RDBMS Demo - Fintech Transaction Ledger\n")    
     # Initialize components
     storage = Storage()
     index_manager = IndexManager()
     parser = SQLParser()
     engine = DatabaseEngine(storage, index_manager)
-    
+
     # Create Users table
     print("1. Creating 'users' table...")
     create_users = parser.parse(
@@ -52,7 +48,7 @@ def main():
     insert_user1 = parser.parse("INSERT INTO users VALUES (1, 'Alice Johnson', 'alice@example.com')")
     engine.insert(insert_user1['table_name'], dict(zip(['id', 'name', 'email'], insert_user1['values'])))
     
-    insert_user2 = parser.parse("INSERT INTO users VALUES (2, 'Bob Smith', 'bob@example.com')")
+    insert_user2 = parser.parse("INSERT INTO users VALUES (2, 'Ochibo Mdogo', 'bob@example.com')")
     engine.insert(insert_user2['table_name'], dict(zip(['id', 'name', 'email'], insert_user2['values'])))
     print("   ✅ 2 users inserted\n")
     
@@ -117,7 +113,7 @@ def main():
         print(f"   - {txn}")
     print()
     
-    print("✅ Demo completed successfully!")
+    print("✅ Seed completed successfully!")
     print("\n💡 Note: The deleted transaction still exists in storage with is_deleted=True")
     print("   This maintains the immutable ledger for fintech compliance.")
 
