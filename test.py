@@ -295,6 +295,62 @@ def test_format_output_with_joins():
     except Exception:
         return False
 
+def test_transactions():
+    """Test 7: Verify transaction atomicity (BEGIN/COMMIT/ROLLBACK)."""
+    storage = Storage()
+    index_manager = IndexManager()
+    engine = DatabaseEngine(storage, index_manager)
+    
+    try:
+        # Start transaction
+        engine.begin_transaction()
+        
+        # Insert a row in transaction
+        engine.insert('users', {'id': 10, 'name': 'Transaction Test', 'email': 'txn@example.com'})
+        
+        # Verify it's visible in transaction
+        rows = engine.select('users', where={'column': 'id', 'operator': '=', 'value': 10})
+        assert len(rows) == 1
+        
+        # Commit transaction
+        engine.commit_transaction()
+        
+        # Verify it's persisted after commit
+        rows = engine.select('users', where={'column': 'id', 'operator': '=', 'value': 10})
+        assert len(rows) == 1
+        
+        # Test rollback
+        engine.begin_transaction()
+        engine.insert('users', {'id': 11, 'name': 'Rollback Test', 'email': 'rollback@example.com'})
+        rows = engine.select('users', where={'column': 'id', 'operator': '=', 'value': 11})
+        assert len(rows) == 1
+        
+        engine.rollback_transaction()
+        
+        # Verify rollback worked - row should not exist
+        rows = engine.select('users', where={'column': 'id', 'operator': '=', 'value': 11})
+        assert len(rows) == 0
+        
+        # Test transaction with error (partial failure)
+        engine.begin_transaction()
+        engine.insert('users', {'id': 12, 'name': 'Partial Test', 'email': 'partial@example.com'})
+        # Try to insert duplicate (should fail)
+        try:
+            engine.insert('users', {'id': 1, 'name': 'Duplicate', 'email': 'dup2@example.com'})
+            engine.commit_transaction()
+            return False  # Should have failed
+        except ValueError:
+            # Error occurred, rollback
+            engine.rollback_transaction()
+            # Verify first insert was also rolled back
+            rows = engine.select('users', where={'column': 'id', 'operator': '=', 'value': 12})
+            assert len(rows) == 0
+        
+        return True
+        
+    except Exception:
+        return False
+
 def main():
     """Run all tests."""
     cleanup_test_tables()
@@ -305,7 +361,8 @@ def main():
         ("INNER JOIN", test_inner_join()),
         ("Soft Delete", test_soft_delete()),
         ("Error Handling", test_error_handling()),
-        ("Format Output", test_format_output_with_joins())
+        ("Format Output", test_format_output_with_joins()),
+        ("Transactions", test_transactions())
     ]
     
     passed = sum(1 for _, result in results if result)

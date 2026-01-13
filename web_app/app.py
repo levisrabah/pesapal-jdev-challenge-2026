@@ -1,7 +1,9 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
+from datetime import datetime
 import sys
 import os
 
@@ -54,22 +56,17 @@ class JoinRequest(BaseModel):
     join_col2: str
     columns: Optional[List[str]] = None
     where: Optional[Dict[str, Any]] = None
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def root():
-    """Root endpoint with API information."""
-    return {
-        "message": "Welcome to Pesapal Custom RDBMS API",
-        "version": "1.0.0",
-        "endpoints": {
-            "GET /tables": "List all tables",
-            "POST /tables": "Create a new table",
-            "POST /insert": "Insert a row",
-            "POST /select": "Query rows",
-            "POST /update": "Update rows",
-            "POST /delete": "Soft delete rows",
-            "POST /join": "Perform INNER JOIN"
-        }
-    }
+    """Serve the dashboard HTML page."""
+    try:
+        template_path = os.path.join(os.path.dirname(__file__), "templates", "index.html")
+        with open(template_path, "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Template file not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading template: {str(e)}")
 
 @app.get("/tables")
 def list_tables():
@@ -198,6 +195,96 @@ def join_tables(request: JoinRequest):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+@app.post("/api/transaction")
+def create_transaction(transaction: Dict[str, Any]):
+    """
+    Create a new transaction.
+    Receives: {user_id: int, amount: float, description: str}
+    """
+    try:
+        # Check if transactions table exists
+        if not storage.table_exists('transactions'):
+            raise HTTPException(status_code=404, detail="Transactions table does not exist. Please create it first.")
+        
+        # Get the current schema to see what fields exist
+        table_data = storage.load_table('transactions')
+        schema = table_data["schema"]
+        
+        # Prepare the row data with only fields that exist in schema
+        row_data = {}
+        
+        # Add required fields that should exist
+        if "id" in schema:
+            existing_rows = engine.select('transactions')
+            next_id = max([row.get('id', 0) for row in existing_rows], default=0) + 1
+            row_data["id"] = next_id
+        
+        if "user_id" in schema:
+            row_data["user_id"] = transaction.get("user_id")
+        
+        if "amount" in schema:
+            row_data["amount"] = transaction.get("amount")
+        
+        # Add optional fields if they exist in schema
+        if "description" in schema:
+            row_data["description"] = transaction.get("description", "")
+        
+        if "timestamp" in schema:
+            row_data["timestamp"] = datetime.now().isoformat()
+        
+        # Insert the transaction (created_at is auto-added by engine)
+        engine.insert('transactions', row_data)
+        
+        return {
+            "message": "Transaction created successfully",
+            "transaction_id": row_data.get("id"),
+            "data": row_data
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating transaction: {str(e)}")
+
+
+@app.get("/api/transactions_with_users")
+def get_transactions_with_users():
+    """
+    Get all transactions joined with users, excluding soft-deleted transactions.
+    Returns transactions with user information.
+    """
+    try:
+        # Check if both tables exist
+        if not storage.table_exists('transactions'):
+            return {"transactions": [], "message": "Transactions table does not exist"}
+        if not storage.table_exists('users'):
+            return {"transactions": [], "message": "Users table does not exist"}
+        
+        # Perform INNER JOIN
+        joined_rows = engine.inner_join(
+            'transactions',
+            'users',
+            'user_id',  # transactions.user_id
+            'id',       # users.id
+            None,       # Select all columns
+            None        # No WHERE clause
+        )
+        
+        # Filter out soft-deleted transactions
+        active_transactions = [
+            row for row in joined_rows 
+            if not (row.get('transactions.is_deleted') or row.get('is_deleted', False))
+        ]
+        
+        return {
+            "transactions": active_transactions,
+            "count": len(active_transactions)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching transactions: {str(e)}")
+
+
 @app.get("/health")
 def health_check():
     """Health check endpoint."""

@@ -25,11 +25,15 @@ def print_welcome():
     
     Commands:
       CREATE TABLE <name> (<columns>)     - Create a new table
+      CREATE INDEX ON <table> (<col>)     - Create index on column
       INSERT INTO <table> VALUES (...)    - Insert a row
       SELECT * FROM <table> [WHERE ...]   - Query rows
       UPDATE <table> SET ... [WHERE ...]  - Update rows
       DELETE FROM <table> [WHERE ...]     - Soft delete rows
       SELECT ... FROM <t1> INNER JOIN <t2> ON ... - Join tables
+      BEGIN                               - Start transaction
+      COMMIT                              - Commit transaction
+      ROLLBACK                            - Rollback transaction
       EXIT or QUIT                        - Exit the REPL
       HELP                                - Show this help
     
@@ -138,27 +142,45 @@ def main():
     
     while True:
         try:
-            # Get user input
-            user_input = input("SQL> ").strip()
+            # Get user input (support multi-line ending with semicolon)
+            user_input = ""
+            prompt = "SQL> "
             
-            # Clean up pasted input: remove all "SQL> " prefixes and error messages
-            # Handle multiple prefixes like "SQL> SQL> INSERT..." or "SQL>    SQL> INSERT..."
-            while re.match(r'^SQL>\s*', user_input, re.IGNORECASE):
-                user_input = re.sub(r'^SQL>\s*', '', user_input, flags=re.IGNORECASE).strip()
+            while True:
+                line = input(prompt).strip()
+                
+                # Clean up pasted input: remove all "SQL> " prefixes
+                while re.match(r'^SQL>\s*', line, re.IGNORECASE):
+                    line = re.sub(r'^SQL>\s*', '', line, flags=re.IGNORECASE).strip()
+                
+                if not line:
+                    if user_input:
+                        continue  # Continue building multi-line input
+                    else:
+                        break  # Empty input, skip
+                
+                user_input += " " + line if user_input else line
+                
+                # Check if input ends with semicolon (multi-line complete)
+                if user_input.rstrip().endswith(';'):
+                    user_input = user_input.rstrip()[:-1].strip()  # Remove semicolon
+                    break
+                
+                # Change prompt for continuation
+                prompt = "  -> "
+            
+            if not user_input:
+                continue
             
             # Remove error message prefixes if accidentally pasted
             if "❌ Error:" in user_input or "Error:" in user_input:
                 match = re.search(r"(?:Unsupported SQL command:|SQL command:)\s*(.+)$", user_input, re.IGNORECASE)
                 if match:
                     user_input = match.group(1).strip()
-                    # Clean up any remaining SQL> prefixes
                     while re.match(r'^SQL>\s*', user_input, re.IGNORECASE):
                         user_input = re.sub(r'^SQL>\s*', '', user_input, flags=re.IGNORECASE).strip()
                 else:
-                    continue  # Skip pure error messages without extractable SQL
-            
-            if not user_input:
-                continue
+                    continue
             
             # Handle special commands
             if user_input.upper() in ['EXIT', 'QUIT']:
@@ -234,6 +256,25 @@ def main():
                         parsed.get('where')
                     )
                     print(format_output(result))
+                
+                elif command == 'CREATE_INDEX':
+                    engine.create_index(
+                        parsed['table_name'],
+                        parsed['column_name']
+                    )
+                    print(f"✅ Index created on '{parsed['table_name']}.{parsed['column_name']}'.\n")
+                
+                elif command == 'BEGIN':
+                    engine.begin_transaction()
+                    print("✅ Transaction started.\n")
+                
+                elif command == 'COMMIT':
+                    engine.commit_transaction()
+                    print("✅ Transaction committed.\n")
+                
+                elif command == 'ROLLBACK':
+                    engine.rollback_transaction()
+                    print("✅ Transaction rolled back.\n")
                 
                 else:
                     print(f"❌ Unsupported command: {command}\n")

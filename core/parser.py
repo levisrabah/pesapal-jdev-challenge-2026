@@ -46,6 +46,11 @@ class SQLParser:
         re.IGNORECASE
     )
     
+    CREATE_INDEX_PATTERN = re.compile(
+        r'CREATE\s+INDEX\s+ON\s+(\w+)\s*\((\w+)\)',
+        re.IGNORECASE
+    )
+    
     def parse(self, sql: str) -> Dict[str, Any]:
         """
         Parse a SQL command and return a structured command dictionary.
@@ -64,6 +69,8 @@ class SQLParser:
         # Try to match different command types
         if sql.upper().startswith('CREATE TABLE'):
             return self._parse_create_table(sql)
+        elif sql.upper().startswith('CREATE INDEX'):
+            return self._parse_create_index(sql)
         elif sql.upper().startswith('INSERT'):
             return self._parse_insert(sql)
         elif sql.upper().startswith('SELECT'):
@@ -76,6 +83,12 @@ class SQLParser:
             return self._parse_update(sql)
         elif sql.upper().startswith('DELETE'):
             return self._parse_delete(sql)
+        elif sql.upper() == 'BEGIN' or sql.upper().startswith('BEGIN TRANSACTION'):
+            return {'command': 'BEGIN'}
+        elif sql.upper() == 'COMMIT':
+            return {'command': 'COMMIT'}
+        elif sql.upper() == 'ROLLBACK':
+            return {'command': 'ROLLBACK'}
         else:
             raise ValueError(f"Unsupported SQL command: {sql}")
     
@@ -119,7 +132,7 @@ class SQLParser:
             
             for i, part in enumerate(parts[1:], 1):
                 part_upper = part.upper()
-                if part_upper in ['INT', 'TEXT', 'FLOAT']:
+                if part_upper in ['INT', 'TEXT', 'FLOAT', 'BOOLEAN', 'DATE']:
                     col_type = part_upper
                 elif part_upper == 'PRIMARY' and i < len(parts) - 1 and parts[i+1].upper() == 'KEY':
                     is_primary = True
@@ -438,4 +451,28 @@ class SQLParser:
                     }
         
         raise ValueError(f"Unsupported WHERE clause operator: {where_clause}")
+    
+    def _parse_create_index(self, sql: str) -> Dict[str, Any]:
+        """
+        Parse CREATE INDEX statement.
+        Example: CREATE INDEX ON users (email)
+        
+        Args:
+            sql: CREATE INDEX SQL string
+            
+        Returns:
+            Dictionary with table_name and column_name
+        """
+        match = self.CREATE_INDEX_PATTERN.search(sql)
+        if not match:
+            raise ValueError("Invalid CREATE INDEX syntax. Expected: CREATE INDEX ON <table> (<column>)")
+        
+        table_name = match.group(1)
+        column_name = match.group(2)
+        
+        return {
+            'command': 'CREATE_INDEX',
+            'table_name': table_name,
+            'column_name': column_name
+        }
 

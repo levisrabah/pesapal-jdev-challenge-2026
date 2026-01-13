@@ -6,7 +6,7 @@ constraint validation, and INNER JOIN functionality.
 """
 
 from typing import Dict, List, Any, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, date
 from .storage import Storage
 from .indexing import IndexManager
 
@@ -28,6 +28,9 @@ class DatabaseEngine:
         self.storage = storage
         self.index_manager = index_manager
         self._table_cache: Dict[str, Dict[str, Any]] = {}
+        # Transaction state
+        self._in_transaction: bool = False
+        self._transaction_changes: Dict[str, Dict[str, Any]] = {}  # table_name -> table_data
     
     def create_table(self, table_name: str, schema: Dict[str, str], 
                     primary_key: Optional[str] = None, 
@@ -58,6 +61,7 @@ class DatabaseEngine:
         self.storage.create_table(table_name, storage_schema, primary_key, unique_keys)
         
         # Create index for user_id if it exists (for transaction lookups)
+        # Note: Generic indexes can be created with CREATE INDEX command
         if 'user_id' in storage_schema:
             self.index_manager.create_index(table_name, 'user_id')
         
@@ -101,21 +105,31 @@ class DatabaseEngine:
         # Add created_at timestamp
         validated_row['created_at'] = datetime.now().isoformat()
         
-        # Insert row
-        self.storage.insert_row(table_name, validated_row)
-        
-        # Update index
-        table_data = self.storage.load_table(table_name)
-        rows = table_data["rows"]
-        row_index = len(rows) - 1
-        
-        if self.index_manager.has_index(table_name, 'user_id') and 'user_id' in validated_row:
-            index = self.index_manager.get_index(table_name, 'user_id')
-            if index:
-                index.add(row_index, validated_row['user_id'])
-        
-        # Update cache
-        self._load_table_cache(table_name)
+        # Handle transaction: store in transaction_changes if in transaction
+        if self._in_transaction:
+            if table_name not in self._transaction_changes:
+                self._transaction_changes[table_name] = self.storage.load_table(table_name)
+            table_data = self._transaction_changes[table_name]
+            table_data["rows"].append(validated_row)
+            table_data["metadata"]["row_count"] = len(table_data["rows"])
+        else:
+            # Insert row directly to storage
+            self.storage.insert_row(table_name, validated_row)
+            
+            # Update index
+            table_data = self.storage.load_table(table_name)
+            rows = table_data["rows"]
+            row_index = len(rows) - 1
+            
+            # Update all indexes for this table
+            for col_name in schema.keys():
+                if self.index_manager.has_index(table_name, col_name) and col_name in validated_row:
+                    index = self.index_manager.get_index(table_name, col_name)
+                    if index:
+                        index.add(row_index, validated_row[col_name])
+            
+            # Update cache
+            self._load_table_cache(table_name)
     
     def select(self, table_name: str, columns: Optional[List[str]] = None,
               where: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
@@ -130,7 +144,12 @@ class DatabaseEngine:
         Returns:
             List of matching row dictionaries
         """
-        rows = self.storage.get_all_rows(table_name, include_deleted=False)
+        # Get rows from transaction or storage
+        if self._in_transaction and table_name in self._transaction_changes:
+            table_data = self._transaction_changes[table_name]
+            rows = [row for row in table_data["rows"] if not row.get("is_deleted", False)]
+        else:
+            rows = self.storage.get_all_rows(table_name, include_deleted=False)
         
         # Apply WHERE clause filtering
         if where:
@@ -159,7 +178,17 @@ class DatabaseEngine:
         Returns:
             Number of rows updated
         """
-        table_data = self.storage.load_table(table_name)
+        # Get table data (from transaction or storage)
+        if self._in_transaction and table_name in self._transaction_changes:
+            table_data = self._transaction_changes[table_name]
+        else:
+            table_data = self.storage.load_table(table_name)
+            if self._in_transaction:
+                # Create a copy for transaction
+                import copy
+                self._transaction_changes[table_name] = copy.deepcopy(table_data)
+                table_data = self._transaction_changes[table_name]
+        
         rows = table_data["rows"]
         schema = table_data["schema"]
         
@@ -175,26 +204,28 @@ class DatabaseEngine:
                 continue
             
             # Update row
-            old_user_id = row.get('user_id')
+            old_values = {}
             for col, val in updates.items():
                 if col in schema:
+                    old_values[col] = row.get(col)
                     # Validate and convert value
                     validated_val = self._convert_value(val, schema[col])
                     row[col] = validated_val
             
-            new_user_id = row.get('user_id')
-            
-            # Update index if user_id changed
-            if self.index_manager.has_index(table_name, 'user_id'):
-                index = self.index_manager.get_index(table_name, 'user_id')
-                if index and old_user_id != new_user_id:
-                    index.update(idx, old_user_id, new_user_id)
+            # Update indexes for changed columns
+            if not self._in_transaction:
+                for col, old_val in old_values.items():
+                    if self.index_manager.has_index(table_name, col) and old_val != row.get(col):
+                        index = self.index_manager.get_index(table_name, col)
+                        if index:
+                            index.update(idx, old_val, row.get(col))
             
             updated_count += 1
         
-        # Save updated rows
-        self.storage.update_rows(table_name, rows)
-        self._load_table_cache(table_name)
+        # Save updated rows (only if not in transaction)
+        if not self._in_transaction:
+            self.storage.update_rows(table_name, rows)
+            self._load_table_cache(table_name)
         
         return updated_count
     
@@ -210,7 +241,17 @@ class DatabaseEngine:
         Returns:
             Number of rows soft-deleted
         """
-        table_data = self.storage.load_table(table_name)
+        # Get table data (from transaction or storage)
+        if self._in_transaction and table_name in self._transaction_changes:
+            table_data = self._transaction_changes[table_name]
+        else:
+            table_data = self.storage.load_table(table_name)
+            if self._in_transaction:
+                # Create a copy for transaction
+                import copy
+                self._transaction_changes[table_name] = copy.deepcopy(table_data)
+                table_data = self._transaction_changes[table_name]
+        
         rows = table_data["rows"]
         
         deleted_count = 0
@@ -228,15 +269,18 @@ class DatabaseEngine:
             row['is_deleted'] = True
             deleted_count += 1
             
-            # Update index (remove from index)
-            if self.index_manager.has_index(table_name, 'user_id'):
-                index = self.index_manager.get_index(table_name, 'user_id')
-                if index:
-                    index.remove(idx)
+            # Update index (remove from index) - only if not in transaction
+            if not self._in_transaction:
+                for col_name in table_data["schema"].keys():
+                    if self.index_manager.has_index(table_name, col_name):
+                        index = self.index_manager.get_index(table_name, col_name)
+                        if index:
+                            index.remove(idx)
         
-        # Save updated rows
-        self.storage.update_rows(table_name, rows)
-        self._load_table_cache(table_name)
+        # Save updated rows (only if not in transaction)
+        if not self._in_transaction:
+            self.storage.update_rows(table_name, rows)
+            self._load_table_cache(table_name)
         
         return deleted_count
     
@@ -260,20 +304,34 @@ class DatabaseEngine:
             List of joined row dictionaries
         """
         # Load rows from both tables (excluding soft-deleted)
-        rows1 = self.storage.get_all_rows(table1_name, include_deleted=False)
-        rows2 = self.storage.get_all_rows(table2_name, include_deleted=False)
+        # Check transaction data first
+        if self._in_transaction and table1_name in self._transaction_changes:
+            rows1 = [row for row in self._transaction_changes[table1_name]["rows"] 
+                    if not row.get("is_deleted", False)]
+        else:
+            rows1 = self.storage.get_all_rows(table1_name, include_deleted=False)
         
-        # Use index if joining on user_id
-        use_index = (join_col2 == 'user_id' and 
-                    self.index_manager.has_index(table2_name, 'user_id'))
+        if self._in_transaction and table2_name in self._transaction_changes:
+            rows2 = [row for row in self._transaction_changes[table2_name]["rows"] 
+                    if not row.get("is_deleted", False)]
+        else:
+            rows2 = self.storage.get_all_rows(table2_name, include_deleted=False)
+        
+        # Use index if joining on indexed column
+        use_index = (self.index_manager.has_index(table2_name, join_col2))
         
         joined_rows = []
         
         if use_index:
             # Optimized join using index
             # Note: Index stores indices into the full table rows array, so we need to load it
-            table2_data = self.storage.load_table(table2_name)
+            if self._in_transaction and table2_name in self._transaction_changes:
+                table2_data = self._transaction_changes[table2_name]
+            else:
+                table2_data = self.storage.load_table(table2_name)
             table2_all_rows = table2_data["rows"]  # Full rows array (for index lookup)
+            
+            index = self.index_manager.get_index(table2_name, join_col2)
             
             index = self.index_manager.get_index(table2_name, 'user_id')
             for row1 in rows1:
@@ -399,6 +457,33 @@ class DatabaseEngine:
         elif col_type == 'TEXT':
             return str(value)
         
+        elif col_type == 'BOOLEAN':
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, str):
+                value_lower = value.lower().strip()
+                if value_lower in ('true', '1', 'yes', 'on'):
+                    return True
+                elif value_lower in ('false', '0', 'no', 'off'):
+                    return False
+            if isinstance(value, (int, float)):
+                return bool(value)
+            raise ValueError(f"Cannot convert '{value}' to BOOLEAN")
+        
+        elif col_type == 'DATE':
+            if isinstance(value, date):
+                return value.isoformat()
+            if isinstance(value, datetime):
+                return value.date().isoformat()
+            if isinstance(value, str):
+                # Try to parse ISO format (YYYY-MM-DD)
+                try:
+                    parsed_date = datetime.strptime(value, '%Y-%m-%d').date()
+                    return parsed_date.isoformat()
+                except ValueError:
+                    raise ValueError(f"Cannot convert '{value}' to DATE (expected YYYY-MM-DD format)")
+            raise ValueError(f"Cannot convert '{value}' to DATE")
+        
         else:
             raise ValueError(f"Unsupported column type: {col_type}")
     
@@ -495,7 +580,13 @@ class DatabaseEngine:
         if not primary_key:
             return False
         
-        rows = self.storage.get_all_rows(table_name, include_deleted=False)
+        # Check transaction data first, then storage
+        if self._in_transaction and table_name in self._transaction_changes:
+            rows = [row for row in self._transaction_changes[table_name]["rows"] 
+                   if not row.get("is_deleted", False)]
+        else:
+            rows = self.storage.get_all_rows(table_name, include_deleted=False)
+        
         for row in rows:
             if row.get(primary_key) == value:
                 return True
@@ -503,7 +594,13 @@ class DatabaseEngine:
     
     def _unique_key_exists(self, table_name: str, column: str, value: Any) -> bool:
         """Check if a unique key value already exists."""
-        rows = self.storage.get_all_rows(table_name, include_deleted=False)
+        # Check transaction data first, then storage
+        if self._in_transaction and table_name in self._transaction_changes:
+            rows = [row for row in self._transaction_changes[table_name]["rows"] 
+                   if not row.get("is_deleted", False)]
+        else:
+            rows = self.storage.get_all_rows(table_name, include_deleted=False)
+        
         for row in rows:
             if row.get(column) == value:
                 return True
@@ -514,10 +611,76 @@ class DatabaseEngine:
         table_data = self.storage.load_table(table_name)
         self._table_cache[table_name] = table_data
         
-        # Rebuild indexes
-        if self.index_manager.has_index(table_name, 'user_id'):
-            rows = table_data["rows"]
-            self.index_manager.build_index(table_name, 'user_id', rows)
+        # Rebuild all indexes for this table
+        rows = table_data["rows"]
+        schema = table_data["schema"]
+        for col_name in schema.keys():
+            if self.index_manager.has_index(table_name, col_name):
+                self.index_manager.build_index(table_name, col_name, rows)
         
         return table_data
+    
+    def begin_transaction(self) -> None:
+        """Begin a transaction. All changes will be kept in memory until COMMIT."""
+        if self._in_transaction:
+            raise ValueError("Transaction already in progress. Use COMMIT or ROLLBACK first.")
+        self._in_transaction = True
+        self._transaction_changes = {}
+    
+    def commit_transaction(self) -> None:
+        """Commit the current transaction. All changes are written to storage."""
+        if not self._in_transaction:
+            raise ValueError("No transaction in progress.")
+        
+        try:
+            # Write all changes to storage
+            for table_name, table_data in self._transaction_changes.items():
+                # Update row count
+                table_data["metadata"]["row_count"] = len(table_data["rows"])
+                # Save to storage
+                self.storage.save_table(table_name, table_data)
+                # Rebuild indexes
+                rows = table_data["rows"]
+                schema = table_data["schema"]
+                for col_name in schema.keys():
+                    if self.index_manager.has_index(table_name, col_name):
+                        self.index_manager.build_index(table_name, col_name, rows)
+                # Update cache
+                self._load_table_cache(table_name)
+        finally:
+            # Always clear transaction state
+            self._in_transaction = False
+            self._transaction_changes = {}
+    
+    def rollback_transaction(self) -> None:
+        """Rollback the current transaction. All changes are discarded."""
+        if not self._in_transaction:
+            raise ValueError("No transaction in progress.")
+        self._in_transaction = False
+        self._transaction_changes = {}
+    
+    def create_index(self, table_name: str, column_name: str) -> None:
+        """
+        Create an index on a column for faster lookups.
+        
+        Args:
+            table_name: Name of the table
+            column_name: Name of the column to index
+            
+        Raises:
+            ValueError: If table doesn't exist or column doesn't exist
+        """
+        if not self.storage.table_exists(table_name):
+            raise ValueError(f"Table '{table_name}' does not exist")
+        
+        table_data = self.storage.load_table(table_name)
+        if column_name not in table_data["schema"]:
+            raise ValueError(f"Column '{column_name}' does not exist in table '{table_name}'")
+        
+        # Create the index
+        self.index_manager.create_index(table_name, column_name)
+        
+        # Build the index with existing data
+        rows = table_data["rows"]
+        self.index_manager.build_index(table_name, column_name, rows)
 

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesapal Immutable Ledger Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Pesapal brand colors */
+        :root {
+            --pesapal-blue: #0066CC;
+            --pesapal-orange: #FF6600;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">
+                Pesapal Immutable Ledger Dashboard
+            </h1>
+            <p class="text-gray-600">Custom RDBMS Transaction Management System</p>
+        </header>
+
+        <!-- Section 1: Record New Transaction -->
+        <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">
+                Record New Transaction
+            </h2>
+            <form id="transactionForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="user_id" class="block text-sm font-medium text-gray-700 mb-1">
+                            User ID
+                        </label>
+                        <input 
+                            type="number" 
+                            id="user_id" 
+                            name="user_id" 
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="e.g., 1"
+                        >
+                    </div>
+                    <div>
+                        <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">
+                            Amount
+                        </label>
+                        <input 
+                            type="number" 
+                            step="0.01" 
+                            id="amount" 
+                            name="amount" 
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="e.g., 500.25"
+                        >
+                    </div>
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+                            Description
+                        </label>
+                        <input 
+                            type="text" 
+                            id="description" 
+                            name="description" 
+                            required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="e.g., Online purchase"
+                        >
+                    </div>
+                </div>
+                <button 
+                    type="submit" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition duration-200 shadow-sm hover:shadow-md"
+                >
+                    Submit Transaction
+                </button>
+            </form>
+            <div id="transactionMessage" class="mt-4"></div>
+        </section>
+
+        <!-- Section 2: Transaction History -->
+        <section class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 class="text-2xl font-semibold text-gray-800">
+                    Transaction History
+                </h2>
+                <button 
+                    id="refreshBtn" 
+                    class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition duration-200 shadow-sm hover:shadow-md"
+                >
+                    Refresh
+                </button>
+            </div>
+            <div id="loadingIndicator" class="text-center py-8 text-gray-500">
+                Loading transactions...
+            </div>
+            <div id="transactionsTable" class="overflow-x-auto hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Transaction ID
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                User Name
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Amount
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Description
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Timestamp
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Transactions will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="errorMessage" class="hidden text-center py-8 text-red-600"></div>
+            <div id="emptyMessage" class="hidden text-center py-8 text-gray-500">
+                No transactions found.
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Handle form submission
+        document.getElementById('transactionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                user_id: parseInt(document.getElementById('user_id').value),
+                amount: parseFloat(document.getElementById('amount').value),
+                description: document.getElementById('description').value
+            };
+
+            const messageDiv = document.getElementById('transactionMessage');
+            messageDiv.className = 'mt-4';
+            messageDiv.innerHTML = '<p class="text-blue-600">Submitting transaction...</p>';
+
+            try {
+                const response = await fetch('/api/transaction', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    messageDiv.innerHTML = `<p class="text-green-600 font-medium">✅ ${data.message || 'Transaction submitted successfully!'}</p>`;
+                    document.getElementById('transactionForm').reset();
+                    // Refresh transaction list
+                    loadTransactions();
+                } else {
+                    messageDiv.innerHTML = `<p class="text-red-600 font-medium">❌ Error: ${data.detail || 'Failed to submit transaction'}</p>`;
+                }
+            } catch (error) {
+                messageDiv.innerHTML = `<p class="text-red-600 font-medium">❌ Error: ${error.message}</p>`;
+            }
+        });
+
+        // Load transactions
+        async function loadTransactions() {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const transactionsTable = document.getElementById('transactionsTable');
+            const transactionsBody = document.getElementById('transactionsBody');
+            const errorMessage = document.getElementById('errorMessage');
+            const emptyMessage = document.getElementById('emptyMessage');
+
+            // Show loading
+            loadingIndicator.classList.remove('hidden');
+            transactionsTable.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            emptyMessage.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/transactions_with_users');
+                const data = await response.json();
+
+                loadingIndicator.classList.add('hidden');
+
+                if (response.ok && data.transactions && data.transactions.length > 0) {
+                    transactionsBody.innerHTML = '';
+                    data.transactions.forEach(transaction => {
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-gray-50';
+
+                        const id = transaction['transactions.id'] || transaction.id || 'N/A';
+                        const userName = transaction['users.name'] || transaction.name || 'Unknown';
+                        const amount = transaction['transactions.amount'] || transaction.amount || 0;
+                        const description = transaction['transactions.description'] || transaction.description || 'N/A';
+                        const timestamp = transaction['transactions.created_at'] || transaction.created_at || transaction.timestamp || 'N/A';
+                        const isDeleted = transaction['transactions.is_deleted'] || transaction.is_deleted || false;
+
+                        // Format timestamp
+                        let formattedTimestamp = timestamp;
+                        if (timestamp !== 'N/A' && timestamp.includes('T')) {
+                            const date = new Date(timestamp);
+                            formattedTimestamp = date.toLocaleString();
+                        }
+
+                        // Format amount
+                        const formattedAmount = new Intl.NumberFormat('en-KE', {
+                            style: 'currency',
+                            currency: 'KES'
+                        }).format(amount);
+
+                        row.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${userName}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${amount >= 0 ? 'text-green-600' : 'text-red-600'}">${formattedAmount}</td>
+                            <td class="px-6 py-4 text-sm text-gray-500">${description}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formattedTimestamp}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                ${isDeleted ? '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Deleted</span>' : '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Active</span>'}
+                            </td>
+                        `;
+                        transactionsBody.appendChild(row);
+                    });
+                    transactionsTable.classList.remove('hidden');
+                } else {
+                    emptyMessage.classList.remove('hidden');
+                }
+            } catch (error) {
+                loadingIndicator.classList.add('hidden');
+                errorMessage.classList.remove('hidden');
+                errorMessage.textContent = `Error loading transactions: ${error.message}`;
+            }
+        }
+
+        // Refresh button
+        document.getElementById('refreshBtn').addEventListener('click', loadTransactions);
+
+        // Load transactions on page load
+        loadTransactions();
+    </script>
+</body>
+</html>
