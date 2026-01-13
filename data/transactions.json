@@ -1,0 +1,48 @@
+{
+  "schema": {
+    "id": "INT",
+    "user_id": "INT",
+    "amount": "FLOAT",
+    "description": "TEXT"
+  },
+  "rows": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "amount": 1500.5,
+      "description": "Payment received",
+      "is_deleted": false,
+      "created_at": "2026-01-13T23:05:22.640869"
+    },
+    {
+      "id": 2,
+      "user_id": 1,
+      "amount": -250.0,
+      "description": "Payment sent",
+      "is_deleted": true,
+      "created_at": "2026-01-13T23:05:22.644474"
+    },
+    {
+      "id": 3,
+      "user_id": 2,
+      "amount": 3000.0,
+      "description": "Salary deposit",
+      "is_deleted": false,
+      "created_at": "2026-01-13T23:05:22.646339"
+    },
+    {
+      "id": 4,
+      "user_id": 2,
+      "amount": -100.0,
+      "description": "Service fee",
+      "is_deleted": false,
+      "created_at": "2026-01-13T23:05:22.648422"
+    }
+  ],
+  "metadata": {
+    "row_count": 4,
+    "primary_key": "id",
+    "unique_keys": [],
+    "created_at": "2026-01-13T23:05:22.634468"
+  }
+}
