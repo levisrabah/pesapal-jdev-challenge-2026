@@ -63,7 +63,7 @@ Example session:
 SQL> CREATE TABLE users (id INT PRIMARY KEY, name TEXT, email TEXT UNIQUE)
 ✅ Table 'users' created successfully.
 
-SQL> INSERT INTO users VALUES (1, 'John Doe', 'john@example.com')
+SQL> INSERT INTO users VALUES (1, 'Eng Midusa', 'midusa@yahoo.com')
 ✅ Row inserted into 'users'.
 
 SQL> SELECT * FROM users
@@ -116,9 +116,9 @@ CREATE TABLE users (
 
 #### INSERT
 ```sql
-INSERT INTO users VALUES (1, 'John Doe', 'john@example.com')
+INSERT INTO users VALUES (1, 'Midusa Apollo', 'apollo@gmail.com')
 -- Or with explicit columns:
-INSERT INTO users (id, name, email) VALUES (2, 'Jane Smith', 'jane@example.com')
+INSERT INTO users (id, name, email) VALUES (2, 'Sarah Waweru', 'wawesh@gmail.com')
 ```
 
 #### SELECT
@@ -131,13 +131,13 @@ SELECT name, email FROM users
 
 -- With WHERE clause
 SELECT * FROM users WHERE id = 1
-SELECT * FROM users WHERE name != 'John'
+SELECT * FROM users WHERE name != 'Midusa'
 ```
 
 #### UPDATE
 ```sql
-UPDATE users SET name = 'Jane Doe' WHERE id = 1
-UPDATE users SET email = 'newemail@example.com' WHERE name = 'John Doe'
+UPDATE users SET name = 'Monica Gichana' WHERE id = 1
+UPDATE users SET email = 'mg@gmail.com' WHERE name = 'Levis Rabah'
 ```
 
 #### DELETE (Soft Delete)
