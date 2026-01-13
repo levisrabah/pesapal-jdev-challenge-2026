@@ -293,7 +293,7 @@ curl -X POST "http://localhost:8000/insert" \
     "table_name": "users",
     "row": {
       "id": 1,
-      "name": "John Doe",
+      "name": "Levis Rabah",
       "email": "levisrabah@gmail.com"
     }
   }'
