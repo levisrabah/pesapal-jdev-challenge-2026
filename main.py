@@ -7,6 +7,7 @@ Provides an interactive SQL-like REPL for database operations.
 """
 
 import sys
+import re
 from core.storage import Storage
 from core.indexing import IndexManager
 from core.parser import SQLParser
@@ -145,6 +146,24 @@ def main():
         try:
             # Get user input
             user_input = input("SQL> ").strip()
+            
+            # Clean up pasted input: remove all "SQL> " prefixes and error messages
+            # Handle multiple prefixes like "SQL> SQL> INSERT..." or "SQL>    SQL> INSERT..."
+            while re.match(r'^SQL>\s*', user_input, re.IGNORECASE):
+                user_input = re.sub(r'^SQL>\s*', '', user_input, flags=re.IGNORECASE).strip()
+            
+            # Remove error message prefixes if accidentally pasted
+            if "❌ Error:" in user_input or "Error:" in user_input:
+                # Try to extract the actual SQL command from error messages
+                # Pattern: "❌ Error: Unsupported SQL command: SQL> INSERT..."
+                match = re.search(r"(?:Unsupported SQL command:|SQL command:)\s*(.+)$", user_input, re.IGNORECASE)
+                if match:
+                    user_input = match.group(1).strip()
+                    # Clean up any remaining SQL> prefixes
+                    while re.match(r'^SQL>\s*', user_input, re.IGNORECASE):
+                        user_input = re.sub(r'^SQL>\s*', '', user_input, flags=re.IGNORECASE).strip()
+                else:
+                    continue  # Skip pure error messages without extractable SQL
             
             if not user_input:
                 continue

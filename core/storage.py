@@ -7,6 +7,7 @@ It uses JSON files stored in the /data directory, with one file per table.
 
 import json
 import os
+from datetime import datetime
 from typing import Dict, List, Any, Optional
 
 
@@ -78,7 +79,7 @@ class Storage:
                 "row_count": 0,
                 "primary_key": primary_key,
                 "unique_keys": unique_keys or [],
-                "created_at": None  # Could add timestamp if needed
+                "created_at": datetime.now().isoformat()  # Set timestamp when table is created
             }
         }
         

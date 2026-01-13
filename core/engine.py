@@ -6,6 +6,7 @@ constraint validation, and INNER JOIN functionality.
 """
 
 from typing import Dict, List, Any, Optional, Tuple
+from datetime import datetime
 from .storage import Storage
 from .indexing import IndexManager
 
@@ -96,6 +97,9 @@ class DatabaseEngine:
         
         # Add soft delete flag (default False)
         validated_row['is_deleted'] = False
+        
+        # Add created_at timestamp
+        validated_row['created_at'] = datetime.now().isoformat()
         
         # Insert row
         self.storage.insert_row(table_name, validated_row)
