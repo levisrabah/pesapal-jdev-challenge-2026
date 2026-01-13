@@ -61,10 +61,18 @@
       "description": "API Test Deposit",
       "is_deleted": false,
       "created_at": "2026-01-13T23:40:33.405329"
+    },
+    {
+      "id": 8,
+      "user_id": 4,
+      "amount": 234.0,
+      "description": "Team luch",
+      "is_deleted": false,
+      "created_at": "2026-01-13T23:48:33.321102"
     }
   ],
   "metadata": {
-    "row_count": 7,
+    "row_count": 8,
     "primary_key": "id",
     "unique_keys": [],
     "created_at": "2026-01-13T23:05:22.634468"

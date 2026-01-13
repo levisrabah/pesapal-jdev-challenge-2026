@@ -25,10 +25,17 @@
       "email": "ondiek@pesapal.com",
       "is_deleted": false,
       "created_at": "2026-01-13T23:40:33.392732"
+    },
+    {
+      "id": 4,
+      "name": "Levis Rabah",
+      "email": "levisrabah@gmail.com",
+      "is_deleted": false,
+      "created_at": "2026-01-13T23:47:03.289970"
     }
   ],
   "metadata": {
-    "row_count": 3,
+    "row_count": 4,
     "primary_key": "id",
     "unique_keys": [
       "email"
