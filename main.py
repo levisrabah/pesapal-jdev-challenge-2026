@@ -18,8 +18,8 @@ def print_welcome():
     ║                                                              ║
     ║     🏦  PESAPAL CUSTOM RDBMS - IMMUTABLE TRANSACTION LEDGER  ║
     ║                                                              ║
-    ║     Welcome to the Fintech Database System!                 ║
-    ║     Built from scratch with Python without SQL libraries       ║
+    ║     Welcome to the Fintech Database System!                  ║ 
+    ║     Built from scratch with Python without SQL libraries     ║
     ║                                                              ║
     ╚══════════════════════════════════════════════════════════════╝
     
@@ -44,7 +44,6 @@ def print_welcome():
     
     """
     print(welcome_msg)
-
 
 def print_help():
     """Display help information."""
@@ -77,7 +76,7 @@ def print_help():
        Example: SELECT * FROM transactions INNER JOIN users ON transactions.user_id = users.id
     
     💡 TIPS:
-      - Use single quotes for TEXT values: 'Venny Levi'
+      - Use single quotes for TEXT values: 'Venny Levis'
       - Numbers can be INT or FLOAT
       - Primary keys must be unique
       - Soft deletes preserve data (is_deleted flag)
